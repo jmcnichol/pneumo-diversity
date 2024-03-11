@@ -102,7 +102,27 @@ div.data <- rbind(data.frame(large.weight.div, weight = rep(as.factor(0.1363),nr
 
 ### Plots ####
 ggplot(div.data, aes(x=diversity, fill=weight)) +
-  geom_density(alpha = 0.4) 
-  #facet_grid(~weight)
+ geom_density(alpha = 0.4) +
+  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+ # geom_density(alpha=0,aes(color=vax)) +
+  labs(x="Shannon diversity", y = "Density") +
+  theme_minimal() 
+
+ggplot(div.data, aes(x=diversity, fill=weight)) +
+  #geom_density(alpha = 0.4) +
+  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  # geom_density(alpha=0,aes(color=vax)) +
+  labs(x="Shannon diversity", y = "Density") +
+  theme_minimal() 
+
+# they look similar lets do a KS test
+ks.test(large.weight.div$diversity,small.weight.div$diversity)
+#p = 0.4981 
+
+mean(large.weight.div$diversity)
+mean(small.weight.div$diversity)
+
+var(large.weight.div$diversity)
+var(small.weight.div$diversity)
 
 
