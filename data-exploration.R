@@ -226,26 +226,44 @@ ggplot(shan.comb, aes(x=diversity, fill=weight)) +
   scale_fill_manual(values=c(colos[1],colos[3]))+
   theme_minimal() 
 
-ggplot(shan.comb, aes(x=diversity, fill=weight)) +
+shan.den <- ggplot(shan.comb, aes(x=diversity, fill=weight)) +
   geom_density(alpha = 0.4) +
   labs(x="Shannon diversity", y = "Density") +
-  scale_fill_manual(values=c(colos[4],colos[3]))+
-  theme_minimal() 
+  scale_fill_manual(values=c(colos[1],colos[4]))+
+  theme_minimal() +
+  theme(legend.title = element_blank())
 
 ks.test(pneumo.shan.lg$diversity,pneumo.shan.sm$diversity)
 #p-value = 0.1182
 
 median(pneumo.shan.lg$diversity)
 
+
+#### Segregating Sites ####
 # number of segregating sites -- number of col with at least two different letters 
 num.seg.lg = num.seg.sm = rep(NA,length(pneumo.seq.df.lg))
 for (l in 1:length(pneumo.seq.df.lg)) {
   #convert character strings to binary DNA
   #returns indices of segregating sites -- i just want to know how many there are, so add em up
-  num.seg.lg[l] <- sum(ape::seg.sites(char2dna(pneumo.seq.df.lg[[l]]$sequence)))
-  num.seg.sm[l] <- sum(ape::seg.sites(char2dna(pneumo.seq.df.sm[[l]]$sequence)))
+  num.seg.lg[l] <- length(ape::seg.sites(char2dna(pneumo.seq.df.lg[[l]]$sequence)))/stringr::str_length((pneumo.seq.df.lg[[l]]$sequence[1]))
+  num.seg.sm[l] <- length(ape::seg.sites(char2dna(pneumo.seq.df.sm[[l]]$sequence)))/stringr::str_length((pneumo.seq.df.sm[[l]]$sequence[1]))
 }
 
+#combine large and small for one plot
+segsites.comb <- rbind(data.frame(seg = num.seg.sm, weight= rep("Small")),
+                   data.frame(seg = num.seg.lg, weight=rep("Large")))
 
+seg.hist <- ggplot(segsites.comb, aes(x=seg, fill=weight)) +
+  geom_histogram( alpha=0.5, position = "identity") +
+  labs(x="Proportion of segregating sites", y = "Count") +
+  scale_fill_manual(values=c(colos[1],colos[4])) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+# what may be more useful is something relative to the length of the sequences. 
 
+library(ggpubr)
+
+ggarrange(shan.den,seg.hist,legend = "bottom",common.legend = T)
+
+  
 
