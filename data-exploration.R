@@ -218,7 +218,10 @@ ggplot(pneumo.shan.sm, aes(x=diversity)) +
 shan.comb <- rbind(data.frame(pneumo.shan.sm, weight= rep("Small")),
       data.frame(pneumo.shan.lg, weight=rep("Large")))
 
-colos <- c("#754668","#935116","#5DADE2","#F5B041")
+colos <- c("#754668","#935116","#5DADE2","#F5B041","#5C8001","#D44D5C")
+
+co <- c("#46ACC2","#4A1942")
+
 
 ggplot(shan.comb, aes(x=diversity, fill=weight)) +
   geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
@@ -226,12 +229,13 @@ ggplot(shan.comb, aes(x=diversity, fill=weight)) +
   scale_fill_manual(values=c(colos[1],colos[3]))+
   theme_minimal() 
 
-shan.den <- ggplot(shan.comb, aes(x=diversity, fill=weight)) +
+shan.den <- ggplot(shan.comb, aes(x=diversity, fill=weight, color=weight)) +
   geom_density(alpha = 0.4) +
   labs(x="Shannon diversity", y = "Density") +
-  scale_fill_manual(values=c(colos[1],colos[4]))+
+  scale_fill_manual(values=c(co[1],co[2]))+
+  scale_color_manual(values=c(co[1],co[2]))+
   theme_minimal() +
-  theme(legend.title = element_blank())
+  theme(legend.position = "bottom")
 
 ks.test(pneumo.shan.lg$diversity,pneumo.shan.sm$diversity)
 #p-value = 0.1182
@@ -256,14 +260,103 @@ segsites.comb <- rbind(data.frame(seg = num.seg.sm, weight= rep("Small")),
 seg.hist <- ggplot(segsites.comb, aes(x=seg, fill=weight)) +
   geom_histogram( alpha=0.5, position = "identity") +
   labs(x="Proportion of segregating sites", y = "Count") +
-  scale_fill_manual(values=c(colos[1],colos[4])) +
+  scale_fill_manual(values=c(co[1],co[2])) +
   theme_minimal() +
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(), legend.position = "bottom")
 # what may be more useful is something relative to the length of the sequences. 
 
 library(ggpubr)
 
 ggarrange(shan.den,seg.hist,legend = "bottom",common.legend = T)
 
-  
 
+#### Simpler version ####
+# calc all the same stuff with 0/1 data instead 
+
+binary.lg <- dplyr::select(massdata, weight.large$locus)
+binary.sm <- dplyr::select(massdata, weight.small$locus)
+
+#shannon diversity for each COG  
+div.lg <- vegan::diversity(t(binary.lg)) 
+div.sm <- vegan::diversity(t(binary.sm)) 
+
+library(reshape2)
+div2.lg <- data.frame(melt(div.lg),weight=rep("Large"))
+div2.sm <- data.frame(melt(div.sm),weight=rep("Small"))
+div2 <- rbind(div2.lg,div2.sm)
+
+
+ggplot(div2, aes(x=value, fill=weight, color=weight)) +
+  geom_density(alpha = 0.4) +
+  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  # geom_density(alpha=0,aes(color=vax)) +
+  scale_fill_manual(values=c(co[1],co[2]))+
+  scale_color_manual(values=c(co[1],co[2]))+
+  labs(x="Shannon diversity", y = "Density") +
+  theme_minimal() 
+
+ggplot(div2, aes(x=value, fill=weight)) +
+  #geom_density(alpha = 0.4) +
+  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+   geom_density(alpha=0,aes(color=weight)) +
+  labs(x="Shannon diversity", y = "Density") +
+  theme_minimal() 
+
+ks.test(div.lg,div.sm) # 0.07
+
+#only include rows that were at time 0 
+# then the last time 
+# not vax type 
+
+#### Group by time ####
+
+#pre vax 
+prevax <- select(dplyr::filter(massdata, Time=="Y0"), c(weight.small$locus,weight.large$locus))
+postvax <- select(dplyr::filter(massdata, Time=="Y6"), c(weight.small$locus,weight.large$locus))
+
+#shannon diversity for each COG  
+pre.div <- vegan::diversity(t(prevax)) 
+post.div <- vegan::diversity(t(postvax)) 
+
+pre.div <- data.frame(melt(pre.div),Time=rep("Pre-vax"))
+post.div <- data.frame(melt(post.div),Time=rep("Post-vax"))
+div3 <- rbind(pre.div,post.div)
+
+ggplot(div3, aes(x=value, fill=Time)) +
+  #geom_density(alpha = 0.4) +
+  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  geom_density(alpha=0,aes(color=Time)) +
+  scale_fill_manual(values=c(colos[2],colos[4]))+
+  scale_color_manual(values=c(colos[2],colos[4]))+
+  labs(x="Shannon diversity", y = "Density") +
+  theme_minimal() 
+
+ggplot(div3, aes(x=value, fill=Time, color=Time)) +
+  geom_density(alpha = 0.4) +
+  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  # geom_density(alpha=0,aes(color=vax)) +
+  scale_fill_manual(values=c(colos[2],colos[5]))+
+  scale_color_manual(values=c(colos[2],colos[5]))+
+  labs(x="Shannon diversity", y = "Density") +
+  theme_minimal() 
+
+### Group by VT vs NVT ###
+VT <- select(dplyr::filter(massdata, VT=="VT"), c(weight.small$locus,weight.large$locus))
+NVT <- select(dplyr::filter(massdata, VT=="NVT"), c(weight.small$locus,weight.large$locus))
+
+#shannon diversity for each COG  
+VT.div <- vegan::diversity(t(VT)) 
+NVT.div <- vegan::diversity(t(NVT)) 
+
+VT.div <- data.frame(melt(VT.div),Type=rep("VT"))
+NVT.div <- data.frame(melt(NVT.div),Type=rep("NVT"))
+div4 <- rbind(VT.div,NVT.div)
+
+ggplot(div4, aes(x=value, fill=Type, color=Type)) +
+  geom_density(alpha = 0.4) +
+  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  # geom_density(alpha=0,aes(color=vax)) +
+  scale_fill_manual(values=c(colos[4],colos[6]))+
+  scale_color_manual(values=c(colos[4],colos[6]))+
+  labs(x="Shannon diversity", y = "Density") +
+  theme_minimal() 
