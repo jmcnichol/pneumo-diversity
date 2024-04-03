@@ -318,6 +318,8 @@ postvax <- select(dplyr::filter(massdata, Time=="Y6"), c(weight.small$locus,weig
 pre.div <- vegan::diversity(t(prevax)) 
 post.div <- vegan::diversity(t(postvax)) 
 
+ks.test(pre.div[,1],post.div[,1])
+
 pre.div <- data.frame(melt(pre.div),Time=rep("Pre-vax"))
 post.div <- data.frame(melt(post.div),Time=rep("Post-vax"))
 div3 <- rbind(pre.div,post.div)
@@ -347,6 +349,9 @@ NVT <- select(dplyr::filter(massdata, VT=="NVT"), c(weight.small$locus,weight.la
 #shannon diversity for each COG  
 VT.div <- vegan::diversity(t(VT)) 
 NVT.div <- vegan::diversity(t(NVT)) 
+
+ks.test(VT.div[,1],NVT.div[,1])
+
 
 VT.div <- data.frame(melt(VT.div),Type=rep("VT"))
 NVT.div <- data.frame(melt(NVT.div),Type=rep("NVT"))
