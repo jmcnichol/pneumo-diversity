@@ -365,3 +365,28 @@ ggplot(div4, aes(x=value, fill=Type, color=Type)) +
   scale_color_manual(values=c(colos[4],colos[6]))+
   labs(x="Shannon diversity", y = "Density") +
   theme_minimal() 
+
+
+######## TAJIMA'S D ##########
+
+
+
+td.lg = td.sm = rep(NA,length(pneumo.seq.df.lg))
+for (l in 1:length(pneumo.seq.df.lg)) {
+  #convert character strings to binary DNA
+  #returns indices of segregating sites -- i just want to know how many there are, so add em up
+  td.lg[l] <- pegas::tajima.test(char2dna(pneumo.seq.df.lg[[l]]$sequence))$D
+  td.sm[l] <- pegas::tajima.test(char2dna(pneumo.seq.df.sm[[l]]$sequence))$D
+}
+
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
