@@ -66,3 +66,44 @@ ggtree(tree.list.lg[["CLS00602"]])
 
 ####### KEEP ONLY TIPS FOR PRE VAX SAMPLES ######
 
+s.data <- read.table("s_study_Croucher.txt", header = T,sep ="\t" )
+
+prevax.isolates <- dplyr::filter(s.data,Factor.Value.isolation.year. ==2001)
+prevax.isolate.names <- prevax.isolates[,1]
+
+prevax.tree.list.lg <- list()
+for (i in 1:221){
+  prevax.tree.list.lg[[i]] <- ape::keep.tip(tree.list.lg[[i]], which(str_detect(tree.list.lg[[i]]$tip.label, str_c(prevax.isolate.names, collapse ="|"))))
+}
+prevax.tree.list.sm <- list()
+for (i in 1:221){
+  prevax.tree.list.sm[[i]] <- ape::keep.tip(tree.list.sm[[i]], which(str_detect(tree.list.sm[[i]]$tip.label, str_c(prevax.isolate.names, collapse ="|"))))
+}
+
+#### pre vax PD #####
+#large 
+pvax.pd.cog.lg <- rep(NA,length(prevax.tree.list.lg))
+for (i in 1:length(prevax.tree.list.lg)){
+  pvax.pd.cog.lg[i] <- sum(prevax.tree.list.lg[[i]]$edge.length)
+}
+#small
+pvax.pd.cog.sm <- rep(NA,length(prevax.tree.list.sm))
+for (i in 1:length(prevax.tree.list.sm)){
+  pvax.pd.cog.sm[i] <- sum(prevax.tree.list.sm[[i]]$edge.length)
+}
+
+#plot 
+ggplot(rbind(data.frame(PD=pvax.pd.cog.lg,Weight=rep("Large")),
+             data.frame(PD=pvax.pd.cog.sm,Weight=rep("Small"))),
+       aes(x=PD, fill=Weight, color=Weight)) +
+  #geom_density(alpha = 0.2) +
+  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.01) +
+  scale_fill_manual(values=c(co[1],co[2]))+
+  scale_color_manual(values=c(co[1],co[2]))+
+  labs(x="Phylogenetic diversity", y = "Density", fill="Weight", color="Weight") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")#+
+#xlim(0,1)
+
+ggsave("figs/PD-den-MA.png",dpi=300,bg = "white",height=3,width = 3)
+
