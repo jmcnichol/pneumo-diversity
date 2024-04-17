@@ -287,12 +287,12 @@ div2 <- rbind(div2.lg,div2.sm)
 
 
 ggplot(div2, aes(x=value, fill=weight, color=weight)) +
-  geom_density(alpha = 0.4) +
-  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  geom_density(alpha = 0.2) +
+  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
   # geom_density(alpha=0,aes(color=vax)) +
   scale_fill_manual(values=c(co[1],co[2]))+
   scale_color_manual(values=c(co[1],co[2]))+
-  labs(x="Shannon diversity", y = "Density") +
+  labs(x="Shannon diversity", y = "Density", fill="Weight", color="Weight") +
   theme_minimal() 
 
 ggplot(div2, aes(x=value, fill=weight)) +
@@ -334,8 +334,8 @@ ggplot(div3, aes(x=value, fill=Time)) +
   theme_minimal() 
 
 ggplot(div3, aes(x=value, fill=Time, color=Time)) +
-  geom_density(alpha = 0.4) +
-  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  geom_density(alpha = 0.2) +
+  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
   # geom_density(alpha=0,aes(color=vax)) +
   scale_fill_manual(values=c(colos[2],colos[5]))+
   scale_color_manual(values=c(colos[2],colos[5]))+
@@ -358,8 +358,8 @@ NVT.div <- data.frame(melt(NVT.div),Type=rep("NVT"))
 div4 <- rbind(VT.div,NVT.div)
 
 ggplot(div4, aes(x=value, fill=Type, color=Type)) +
-  geom_density(alpha = 0.4) +
-  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  geom_density(alpha = 0.2) +
+  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
   # geom_density(alpha=0,aes(color=vax)) +
   scale_fill_manual(values=c(colos[4],colos[6]))+
   scale_color_manual(values=c(colos[4],colos[6]))+
@@ -369,22 +369,123 @@ ggplot(div4, aes(x=value, fill=Type, color=Type)) +
 
 ######## TAJIMA'S D ##########
 
+# create a list of matrices instead of char strings
 
+require(stringr)
+lg.mat <- list()
+for (c in 1:221) {
+  mat1 <- matrix(NA, nrow=length(pneumo.seq.df.lg[[c]][["sequence"]]),ncol=str_length(pneumo.seq.df.lg[[c]][["sequence"]][1]))
+  for (m in 1:length(pneumo.seq.df.lg[[c]][["sequence"]])) {
+    mat1[m,] <- s2c(pneumo.seq.df.lg[[c]][["sequence"]][m])
+  }
+  lg.mat[[c]] <- mat1
+}
+sm.mat <- list()
+for (c in 1:221) {
+  mat1 <- matrix(NA, nrow=length(pneumo.seq.df.sm[[c]][["sequence"]]),ncol=str_length(pneumo.seq.df.sm[[c]][["sequence"]][1]))
+  for (m in 1:length(pneumo.seq.df.sm[[c]][["sequence"]])) {
+    mat1[m,] <- s2c(pneumo.seq.df.sm[[c]][["sequence"]][m])
+  }
+  sm.mat[[c]] <- mat1
+}
 
 td.lg = td.sm = rep(NA,length(pneumo.seq.df.lg))
-for (l in 1:length(pneumo.seq.df.lg)) {
+tp.lg = tp.sm = rep(NA,length(pneumo.seq.df.lg))
+for (l in 1:length(lg.mat)) {
   #convert character strings to binary DNA
   #returns indices of segregating sites -- i just want to know how many there are, so add em up
-  td.lg[l] <- pegas::tajima.test(char2dna(pneumo.seq.df.lg[[l]]$sequence))$D
-  td.sm[l] <- pegas::tajima.test(char2dna(pneumo.seq.df.sm[[l]]$sequence))$D
+ # td.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$D
+#  td.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$D
+  tp.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$Pval.normal
+  tp.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$Pval.normal
 }
 
 
+pdata <- data.frame(psmall=tp.sm, plarge=tp.lg)
+ggplot(melt(pdata), aes(x=value, y=variable, fill=variable)) +
+  geom_boxplot(alpha = 0.4) +
+  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  # geom_density(alpha=0,aes(color=vax)) +
+  scale_fill_manual(values=c(co[1],co[2]))+
+  scale_color_manual(values=c(co[1],co[2]))+
+  labs(x="p-value", y = "Weight") +
+  theme_minimal() 
+
+ggplot(melt(pdata), aes(x=value, fill=variable)) +
+  geom_histogram(alpha = 0.4, bins=200) +
+  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  # geom_density(alpha=0,aes(color=vax)) +
+  scale_fill_manual(values=c(co[1],co[2]))+
+  scale_color_manual(values=c(co[1],co[2]))+
+  labs(x="p-value", y = "Count") +
+  theme_minimal() 
+
+sigps <- melt(pdata) %>% group_by(variable) %>% count(sig=value<=0.05) %>% group_by(variable) 
+ggplot(filter(sigps, is.na(sig)==F), aes(x=n, y=sig, fill=variable)) +
+  geom_bar(stat="identity",position = position_dodge(),alpha = 0.4) +
+  #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+  # geom_density(alpha=0,aes(color=vax)) +
+  scale_fill_manual(labels = c("Small","Large"), values=c(co[2],co[1]))+
+  scale_color_manual(labels = c("Small","Large"), values=c(co[2],co[1]))+
+  labs(x="Number of p-values", y = " ", fill="Weight") +
+  theme_minimal() +
+  scale_y_discrete(labels=c("TRUE" = "p < 0.05", "FALSE" = "p > 0.05"))
+
+
+## look at all the ones that were significant by tajima
+sigD <- data.frame(COG = c(names(pneumo.seq.df.sm),names(pneumo.seq.df.lg)),melt(pdata)) %>% group_by(variable)  %>% filter(value<=0.05) 
+
+# now look at other properties of them --- hmm properties are for each isolate
+sigD.isoinfo <- data.frame(mass.info,select(massdata, sigD$COG))
+
+
+### hmm should i look at diversity of taxa instead of diversity of COGs ??? 
+### then i could compare across groups and stuff??? hmmmmmmmm --- i can just group first -- lets do that 
             
-            
-            
-            
-            
+
+#### Tajima's D for VT/NVT #####
+
+
+x =pneumo.seq.df.lg[["CLS02665"]][["name"]]
+y=as.character(mass.info$Taxon) 
+sum(mapply(function(x, y) any(x %in% y), 
+       strsplit(pneumo.seq.df.lg[["CLS02665"]][["name"]], "\\s+"), strsplit(as.character(mass.info$Taxon) , "\\s+")))
+
+
+
+
+
+
+
+### ignor this bit for now
+seq.lg.VT <-  pneumo.seq.df.lg[[1]]$name
+
+seq.lg.VT <- pneumo.seq.df.lg[names(VT)]
+
+seq.lg.VT <- list()
+for (i in 1:length(pneumo.seq.df.lg)){
+  if (names(pneumo.seq.df.lg[i]) %in% names(VT)){
+    seq.lg.VT[[i]] <- pneumo.seq.df.lg[[i]]
+  }
+}
+
+lg.mat <- list()
+for (c in 1:221) {
+  mat1 <- matrix(NA, nrow=length(pneumo.seq.df.lg[[c]][["sequence"]]),ncol=str_length(pneumo.seq.df.lg[[c]][["sequence"]][1]))
+  for (m in 1:length(pneumo.seq.df.lg[[c]][["sequence"]])) {
+    mat1[m,] <- s2c(pneumo.seq.df.lg[[c]][["sequence"]][m])
+  }
+  lg.mat[[c]] <- mat1
+}
+sm.mat <- list()
+for (c in 1:221) {
+  mat1 <- matrix(NA, nrow=length(pneumo.seq.df.sm[[c]][["sequence"]]),ncol=str_length(pneumo.seq.df.sm[[c]][["sequence"]][1]))
+  for (m in 1:length(pneumo.seq.df.sm[[c]][["sequence"]])) {
+    mat1[m,] <- s2c(pneumo.seq.df.sm[[c]][["sequence"]][m])
+  }
+  sm.mat[[c]] <- mat1
+}
+
             
             
             
