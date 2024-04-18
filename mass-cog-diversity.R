@@ -1,8 +1,9 @@
 
 require(stringr)
+require(seqinr)
 # Extracting the Mass. isolates from the cogs based on the 616 in the nick paper
 # supp data from Nick
-s.data <- read.table("s_study_Croucher.txt",skip=1,sep ="" )
+s.data <- read.table("s_study_Croucher.txt", header = T,sep ="\t" )
 
 sum(str_detect(pneumo.seq.df.lg[["CLS02117"]][["name"]], str_c(s.data$V1, collapse ="|")))
 
@@ -14,6 +15,42 @@ gsub("\\_.*","",pneumo.seq.df.lg[[1]]$name) #they are in order omg
 for (i in 1:length(pneumo.seq.df.sm)){
   pneumo.seq.df.sm[[i]] <- pneumo.seq.df.sm[[i]][which(str_detect(pneumo.seq.df.sm[[i]][["name"]], str_c(s.data$V1, collapse ="|"))),]
 }
+
+# 
+weight.small <- read.table("gCOG_sequences/sm_weight_file_names.txt")
+weight.small <- apply(weight.small,2,function(x)gsub(".aligned.fasta","",x))
+
+weight.large <- read.table("gCOG_sequences/lg_weight_file_names.txt")
+weight.large <- apply(weight.large,2,function(x)gsub(".aligned.fasta","",x))
+
+# read in the aligned sequences with small weights 
+raw.files <- list.files('gCOG_sequences/SmallWeights/')
+filenames <- paste0(weight.small,".aligned.fasta")
+files.all <- na.omit(raw.files[match(filenames,raw.files)])
+file.list <- pneumo.seq.df.sm <- list()
+for (i in 1:length(files.all)) {
+  file <- paste0("gCOG_sequences/SmallWeights/",files.all[i])
+  file.list[[i]] <- seqinr::read.fasta(file,seqtype= "AA", as.string = T, forceDNAtolower = F)
+  
+  pneumo.seq.df.sm[[i]] <- data.frame(name=paste(getAnnot(file.list[[i]])), sequence=paste0(file.list[[i]]))
+  pneumo.seq.df.sm[[i]]$name <- gsub(">", "", pneumo.seq.df.sm[[i]]$name)
+}
+names(pneumo.seq.df.sm) <- gsub(".aligned.fasta","", files.all)
+
+# read in large
+raw.files <- list.files('gCOG_sequences/LargeWeights/')
+filenames <- paste0(weight.large,".aligned.fasta")
+files.all <- na.omit(raw.files[match(filenames,raw.files)])
+file.list <- pneumo.seq.df.lg <- list()
+for (i in 1:length(files.all)) {
+  file <- paste0("gCOG_sequences/LargeWeights/",files.all[i])
+  file.list[[i]] <- seqinr::read.fasta(file,seqtype= "AA", as.string = T, forceDNAtolower = F)
+  
+  pneumo.seq.df.lg[[i]] <- data.frame(name=paste(getAnnot(file.list[[i]])), sequence=paste0(file.list[[i]]))
+  pneumo.seq.df.lg[[i]]$name <- gsub(">", "", pneumo.seq.df.lg[[i]]$name)
+}
+names(pneumo.seq.df.lg) <- gsub(".aligned.fasta","", files.all)
+
 
 #### colours for plots ####
 
