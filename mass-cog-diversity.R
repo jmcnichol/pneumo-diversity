@@ -85,10 +85,10 @@ tp.lg = tp.sm = rep(NA,length(pneumo.seq.df.lg))
 for (l in 1:length(lg.mat)) {
   #convert character strings to binary DNA
   #returns indices of segregating sites -- i just want to know how many there are, so add em up
-  td.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$D
-  td.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$D
-  tp.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$Pval.normal
-  tp.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$Pval.normal
+ # td.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$D
+#  td.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$D
+  tp.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$Pval.beta
+  tp.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$Pval.beta
 }
 
 # look at pvalues
@@ -194,6 +194,14 @@ sm.mean <- mean((td.sm),na.rm = T)
 sd((td.lg),na.rm = T)
 
 abs(lg.mean-sm.mean)/sqrt(2/221)
+
+tp.lg.p <- p.adjust(tp.lg)
+tp.sm.p <- p.adjust(tp.sm)
+
+sum(tp.lg.p < 0.05, na.rm = T)/221
+sum(tp.sm.p < 0.05, na.rm = T)/221
+#use these ones and see if they do as well. they cant use all the weights. make model of NFDS using this approach. 
+
 
 #### summary stats and tests ########
 shan.comb %>% group_by(weight) %>% summarise(sd(diversity))
