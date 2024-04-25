@@ -1,6 +1,9 @@
 
 require(stringr)
 require(seqinr)
+require(ape)
+library(dplyr)
+library(reshape2)
 # Extracting the Mass. isolates from the cogs based on the 616 in the nick paper
 # supp data from Nick
 s.data <- read.table("s_study_Croucher.txt", header = T,sep ="\t" )
@@ -104,13 +107,15 @@ ggplot(filter(sigps, is.na(sig)==F), aes(x=n, y=sig, fill=variable)) +
 # D values 
 Ddata <- data.frame(Large=td.lg,Small=td.sm)
 ggplot(filter(melt(Ddata), is.na(value)==F), aes(x=value, fill=variable, color=variable)) +
-#  geom_density(alpha = 0.2) +
-  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
+ # geom_density(alpha = 0.2) +
+  geom_histogram( alpha=0.4, position = "identity", binwidth = 0.1) +
   scale_fill_manual( values=c(co[1],co[2]))+
   scale_color_manual(values=c(co[1],co[2]))+
   labs(x="Tajima's D", y = "Count", fill="Weight",color="Weight") +
-  theme_minimal(base_size = 12)
-ggsave("figs/D-mass.png",dpi=300,bg = "white",height=5,width = 7)
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")
+ggsave("figs/D-hist.png",dpi=300,bg = "white",height=4,width = 6)
+
 #overlay the density
 ggplot(filter(melt(Ddata), is.na(value)==F), aes(x=value, fill=variable, color=variable)) +
     geom_density(alpha = 0.2) +
@@ -120,9 +125,22 @@ ggplot(filter(melt(Ddata), is.na(value)==F), aes(x=value, fill=variable, color=v
   labs(x="Tajima's D", y = "Density", fill="Weight",color="Weight") +
   theme_minimal(base_size = 12)+
   theme(legend.position = "none")
-ggsave("figs/D-mass-den.png",dpi=300,bg = "white",height=3,width = 3)
+ggsave("figs/D-den.png",dpi=300,bg = "white",height=3,width = 3)
 
 ##### SHANNON #####
+#calculates Shannon entropy 
+shan.div <- function(list.of.dfs){
+  div <- rep(0,length(list.of.dfs))
+  for (i in 1:length(list.of.dfs)){
+    # unique sequences
+    pneumo.freq <- list.of.dfs[[i]] %>% dplyr::count(sequence)
+    pneumo.freq$n <- pneumo.freq$n/nrow(list.of.dfs[[i]])
+    div[i] <- vegan::diversity(pneumo.freq$n)
+  }
+  div <- data.frame(locus = names(list.of.dfs),diversity = div)
+  return(div)
+}
+
 
 pneumo.shan.lg <- shan.div(pneumo.seq.df.lg)
 pneumo.shan.sm <- shan.div(pneumo.seq.df.sm)
@@ -133,15 +151,25 @@ shan.comb <- rbind(data.frame(pneumo.shan.sm, weight= rep("Small")),
 
 ggplot(shan.comb, aes(x=diversity, fill=weight, color=weight)) +
  # geom_density(alpha = 0.2) +
-  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
-  # geom_density(alpha=0,aes(color=vax)) +
+  geom_histogram( alpha=0.4, position = "identity", binwidth = 0.1) +
   scale_fill_manual(values=c(co[1],co[2]))+
   scale_color_manual(values=c(co[1],co[2]))+
   labs(x="Shannon diversity", y = "Count", fill="Weight", color="Weight") +
-  theme_minimal(base_size = 12) #+
+  theme_minimal(base_size = 12) +
   theme(legend.position = "none")
 
-ggsave("figs/shannon-mass.png",dpi=300,bg = "white",height=5,width = 7)
+ggsave("figs/shannon-hist.png",dpi=300,bg = "white",height=4,width = 6)
+
+
+ggplot(shan.comb, aes(x=diversity, fill=weight, color=weight)) +
+   geom_density(alpha = 0.2) +
+  #geom_histogram( alpha=0.4, position = "identity", binwidth = 0.1) +
+  scale_fill_manual(values=c(co[1],co[2]))+
+  scale_color_manual(values=c(co[1],co[2]))+
+  labs(x="Shannon diversity", y = "Diversity", fill="Weight", color="Weight") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")
+ggsave("figs/shannon-div.png",dpi=300,bg = "white",height=3,width = 3)
 
 ### sort by VT/NVT ####
 
@@ -157,3 +185,31 @@ for (i in 1:length(pneumo.seq.df.lg)) {
   seqinr::write.fasta(names=pneumo.seq.df.sm[[i]]$name,sequences=as.list(pneumo.seq.df.sm[[i]]$sequence),file.out=paste0("smcog/",names(pneumo.seq.df.sm)[i],".fasta"))
   
 }
+
+
+######## TEST ########
+lg.mean <- mean((td.lg),na.rm = T)
+sm.mean <- mean((td.sm),na.rm = T)
+
+sd((td.lg),na.rm = T)
+
+abs(lg.mean-sm.mean)/sqrt(2/221)
+
+#### summary stats and tests ########
+shan.comb %>% group_by(weight) %>% summarise(sd(diversity))
+ks.test(x=pneumo.shan.lg$diversity,y=pneumo.shan.sm$diversity, exact = T)
+
+#from tree-diversity.R 
+mean(pd.cog.lg)
+mean(pd.cog.sm)
+
+sd(pd.cog.lg)
+sd(pd.cog.sm)
+
+ks.test(x=pd.cog.lg[-62],y=pd.cog.sm)
+
+which.max(pd.cog.lg)
+pd.cog.lg[62]
+
+sd(pd.cog.lg[-62])
+mean(pd.cog.lg[-62])

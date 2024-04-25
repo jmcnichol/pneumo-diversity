@@ -27,7 +27,7 @@ pd.cog.sm <-rep(NA,length(tree.list.sm))
 # calculate phylo diversity
 for (i in 1:length(tree.list.sm)){
  pd.cog.sm[i] <- sum(tree.list.sm[[i]]$edge.length)
- pd.cog.sm[i] <- pd.cog.sm[i]*harm(pneumo.seq.df.sm[[i]]$sequence)
+ pd.cog.sm[i] <- pd.cog.sm[i]/harm(pneumo.seq.df.sm[[i]]$sequence)
 }
 
 #large weights 
@@ -44,7 +44,7 @@ pd.cog.lg <- rep(NA,length(tree.list.lg))
 # calculate phylo diversity
 for (i in 1:length(tree.list.lg)){
   pd.cog.lg[i] <- sum(tree.list.lg[[i]]$edge.length)
-  pd.cog.lg[i] <- pd.cog.lg[i]*harm(pneumo.seq.df.lg[[i]]$sequence)
+  pd.cog.lg[i] <- pd.cog.lg[i]/harm(pneumo.seq.df.lg[[i]]$sequence)
 }
 
 
@@ -55,16 +55,31 @@ co <- c("#46ACC2","#4A1942","#935116","#F5B041","#5C8001","#D44D5C")
 ggplot(rbind(data.frame(PD=pd.cog.lg,Weight=rep("Large")),
              data.frame(PD=pd.cog.sm,Weight=rep("Small"))),
        aes(x=PD, fill=Weight, color=Weight)) +
-   #geom_density(alpha = 0.2) +
-  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.01) +
+   geom_density(alpha = 0.2) +
+  geom_histogram(alpha=0.4, position = "identity", binwidth = 0.001) +
+  scale_fill_manual(values=c(co[1],co[2]))+
+  scale_color_manual(values=c(co[1],co[2]))+
+  labs(x="Phylogenetic diversity", y = "Count", fill="Weight", color="Weight") +
+  theme_minimal(base_size = 12) +
+theme(legend.position = "none")#+
+xlim(0,0.05) +
+  ylim(0,30)
+
+ggsave("figs/PD-hist-MA-scaled.png",dpi=300,bg = "white",height=4,width = 6)
+
+ggplot(rbind(data.frame(PD=pd.cog.lg,Weight=rep("Large")),
+             data.frame(PD=pd.cog.sm,Weight=rep("Small"))),
+       aes(x=PD, fill=Weight, color=Weight)) +
+  geom_density(alpha = 0.2) +
+ # geom_histogram(alpha=0.4, position = "identity", binwidth = 0.1) +
   scale_fill_manual(values=c(co[1],co[2]))+
   scale_color_manual(values=c(co[1],co[2]))+
   labs(x="Phylogenetic diversity", y = "Density", fill="Weight", color="Weight") +
   theme_minimal(base_size = 12) +
-theme(legend.position = "none")+
-xlim(0,10)
+  theme(legend.position = "none")+
+  xlim(0,0.1)
 
-ggsave("figs/PD-den-MA.png",dpi=300,bg = "white",height=3,width = 3)
+ggsave("figs/PD-den-MA-scaled.png",dpi=300,bg = "white",height=3,width = 3)
 
 # there was one in the large group with really high div. ill look at the tree for those 
 ######## TREES #######
@@ -116,8 +131,8 @@ ggplot(rbind(data.frame(PD=pvax.pd.cog.lg,Weight=rep("Large")),
   scale_color_manual(values=c(co[1],co[2]))+
   labs(x="Phylogenetic diversity", y = "Density", fill="Weight", color="Weight") +
   theme_minimal(base_size = 12) +
-  theme(legend.position = "none")#+
-#xlim(0,1)
+  theme(legend.position = "none")+
+xlim(0,1)
 
 ggsave("figs/PD-den-MA.png",dpi=300,bg = "white",height=3,width = 3)
 
@@ -128,13 +143,13 @@ ggsave("figs/PD-den-MA.png",dpi=300,bg = "white",height=3,width = 3)
 library(dplyr)
 s.data %>% count(Factor.Value.isolation.year.)
 #names of the 2007 ones 
-postvax.isolates <- dplyr::filter(s.data,Factor.Value.isolation.year. ==2007)
+postvax.isolates <- dplyr::filter(s.data,Factor.Value.isolation.year. ==2004)
 postvax.isolate.names <- postvax.isolates[,1]
 #2004 names 
 inter.isolates <- dplyr::filter(s.data,Factor.Value.isolation.year. ==2004)
 inter.isolate.names <- inter.isolates[,1]
 
-postvax.isolates <- dplyr::filter(s.data,Factor.Value.isolation.year. ==2007)
+postvax.isolates <- dplyr::filter(s.data,Factor.Value.isolation.year. ==2004)
 postvax.isolate.names <- postvax.isolates[,1]
 
 postvax.tree.list.sm <- list()
@@ -161,20 +176,23 @@ for (i in 1:length(postvax.tree.list.sm)){
   postvax.pd.cog.sm[i] <- sum(postvax.tree.list.sm[[i]]$edge.length)
 }
 
+
+
 #plot 
-ggplot(rbind(data.frame(PD=postvax.pd.cog.lg,Weight=rep("Large")),
-             data.frame(PD=postvax.pd.cog.sm,Weight=rep("Small"))),
-       aes(x=PD, fill=Weight, color=Weight)) +
+ggplot(rbind(data.frame(Time = rep("Post-vax"),rbind(data.frame(PD=postvax.pd.cog.lg,Weight=rep("Large")),
+                                                     data.frame(PD=postvax.pd.cog.sm,Weight=rep("Small")))),
+             data.frame(Time=rep("Pre-vax"),rbind(data.frame(PD=pvax.pd.cog.lg,Weight=rep("Large")),
+                                                  data.frame(PD=pvax.pd.cog.sm,Weight=rep("Small"))))),
+       aes(x=PD, y=Time, fill=Weight, color=Weight)) +
   #geom_density(alpha = 0.2) +
-  geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.01) +
+  geom_violin(alpha=0.4) +
   scale_fill_manual(values=c(co[1],co[2]))+
   scale_color_manual(values=c(co[1],co[2]))+
-  labs(x="Phylogenetic diversity", y = "Density", fill="Weight", color="Weight") +
+  labs(x="Phylogenetic diversity", y = "Sample time", fill="Weight", color="Weight") +
   theme_minimal(base_size = 12) +
-  theme(legend.position = "none")#+
-#xlim(0,1)
+  theme(legend.position = "none")
 
-ggsave("figs/PD-den-MA.png",dpi=300,bg = "white",height=3,width = 3)
+jggsave("figs/PD-den-MA.png",dpi=300,bg = "white",height=3,width = 3)
 
 
 
