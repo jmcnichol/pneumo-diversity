@@ -4,6 +4,8 @@ library(ggtree)
 library(treeio)
 library(ggplot2)
 
+### run the first 56 lines of mass-cog-diveristy.R before this script #####
+
 #harmonic numbers for scaling -- see wakeley eqn 3.23
 harm <- function(x){
   thing <- rep(NA,(length(x)-1))
@@ -65,7 +67,7 @@ theme(legend.position = "none")#+
 xlim(0,0.05) +
   ylim(0,30)
 
-ggsave("figs/PD-hist-MA-scaled.png",dpi=300,bg = "white",height=4,width = 6)
+#ggsave("figs/PD-hist-MA-scaled.png",dpi=300,bg = "white",height=4,width = 6)
 
 ggplot(rbind(data.frame(PD=pd.cog.lg,Weight=rep("Large")),
              data.frame(PD=pd.cog.sm,Weight=rep("Small"))),
@@ -79,7 +81,7 @@ ggplot(rbind(data.frame(PD=pd.cog.lg,Weight=rep("Large")),
   theme(legend.position = "none")+
   xlim(0,0.1)
 
-ggsave("figs/PD-den-MA-scaled.png",dpi=300,bg = "white",height=3,width = 3)
+#ggsave("figs/PD-den-MA-scaled.png",dpi=300,bg = "white",height=3,width = 3)
 
 # there was one in the large group with really high div. ill look at the tree for those 
 ######## TREES #######
@@ -89,8 +91,7 @@ ggtree(tree.list.lg[["CLS01665"]])
 #low div one for comparison 
 names(tree.list.lg)[which.min(pd.cog.lg)]
 ggtree(tree.list.lg[["CLS00602"]])
-
-
+#0.00986437
 ####### KEEP ONLY TIPS FOR PRE VAX SAMPLES ######
 
 s.data <- read.table("s_study_Croucher.txt", header = T,sep ="\t" )
@@ -134,7 +135,7 @@ ggplot(rbind(data.frame(PD=pvax.pd.cog.lg,Weight=rep("Large")),
   theme(legend.position = "none")+
 xlim(0,1)
 
-ggsave("figs/PD-den-MA.png",dpi=300,bg = "white",height=3,width = 3)
+#ggsave("figs/PD-den-MA.png",dpi=300,bg = "white",height=3,width = 3)
 
 
 
@@ -179,9 +180,9 @@ for (i in 1:length(postvax.tree.list.sm)){
 
 
 #plot 
-ggplot(rbind(data.frame(Time = rep("Post-vax"),rbind(data.frame(PD=postvax.pd.cog.lg,Weight=rep("Large")),
+ggplot(rbind(data.frame(Time = rep("Post-vax"),rbind(data.frame(PD=postvax.pd.cog.lg[-62],Weight=rep("Large")),
                                                      data.frame(PD=postvax.pd.cog.sm,Weight=rep("Small")))),
-             data.frame(Time=rep("Pre-vax"),rbind(data.frame(PD=pvax.pd.cog.lg,Weight=rep("Large")),
+             data.frame(Time=rep("Pre-vax"),rbind(data.frame(PD=pvax.pd.cog.lg[-62],Weight=rep("Large")),
                                                   data.frame(PD=pvax.pd.cog.sm,Weight=rep("Small"))))),
        aes(x=PD, y=Time, fill=Weight, color=Weight)) +
   #geom_density(alpha = 0.2) +
