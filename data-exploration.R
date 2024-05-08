@@ -29,7 +29,7 @@ seq.unique <- unique(pneumo.test$sequence)
 nrow(pneumo.test) #4243
 length(seq.unique) #454
 #freq of each unique thing 
-pneumo.freq <- pneumo.test |> count(sequence)
+pneumo.freq <- pneumo.test %>% dplyr::count(sequence)
 pneumo.freq$n <- pneumo.freq$n/nrow(pneumo.test)
 #calculate Shannon entropy 
 div <- vegan::diversity(pneumo.freq$n)
@@ -39,7 +39,7 @@ shan.div <- function(list.of.dfs){
   div <- rep(0,length(list.of.dfs))
   for (i in 1:length(list.of.dfs)){
     # unique sequences
-    pneumo.freq <- list.of.dfs[[i]] |> count(sequence)
+    pneumo.freq <- list.of.dfs[[i]] %>% dplyr::count(sequence)
     pneumo.freq$n <- pneumo.freq$n/nrow(list.of.dfs[[i]])
     div[i] <- vegan::diversity(pneumo.freq$n)
   }
@@ -61,12 +61,12 @@ hist(select.strength$weight) #two distinct groups
 unique(select.strength$weight) # there are only two weights 
 
 # read in the ones that we have weights for
-raw.files <- list.files('gCOG_sequences/')
+raw.files <- list.files('gCOG_sequences2/')
 filenames <- paste0(select.strength$locus ,".out")
 files.all <- na.omit(raw.files[match(filenames,raw.files)])
 file.list <- pneumo.seq.df <- list()
 for (i in 1:length(files.all)) {
-  file <- paste0("gCOG_sequences/",files.all[i])
+  file <- paste0("gCOG_sequences2/",files.all[i])
   file.list[[i]] <- seqinr::read.fasta(file,seqtype= "AA", as.string = T, forceDNAtolower = F)
   
   pneumo.seq.df[[i]] <- data.frame(name=paste(getAnnot(file.list[[i]])), sequence=paste0(file.list[[i]]))
@@ -87,9 +87,9 @@ weight.small <- select.strength |> filter(weight < 0.06) |> filter(locus %in% lo
 # of the loci (?) so that the number of tips is reduced 
 # (takes a long time to generate a tree)
 dim(weight.large) #there are 221 large ones, lets sample 221 small ones
-set.seed(12345)
-weight.sample <- sample.int(221)
-weight.small <- weight.small[weight.sample,]
+#set.seed(12345)
+#weight.sample <- sample.int(221)
+#weight.small <- weight.small[-weight.sample,]
 
 nrow(weight.large) #270 --> 221 read in 
 nrow(weight.small) #820 --> 684 read in 
@@ -169,6 +169,10 @@ write.table(lg_weight_file_names, "lg_weight_file_names.txt", sep="\t", col.name
 sm_weight_file_names <- paste0(weight.small$locus,".fasta")
 write.table(sm_weight_file_names, "sm_weight_file_names.txt", sep="\t", col.names = F, row.names = F)
 
+# do this again for the rest of the small weight ones -- may.7 2024
+sm_weight_file_names2 <- paste0(weight.small$locus,".fasta")
+write.table(sm_weight_file_names2, "sm_weight_file_names2.txt", sep="\t", col.names = F, row.names = F)
+
 ########### Aligned Sequences #########
 #### replicating the original script for the aligned sequences 
 
@@ -194,12 +198,12 @@ ggplot(pneumo.shan.lg, aes(x=diversity)) +
   theme_minimal() 
 
 # read in the aligned sequences with small weights 
-raw.files <- list.files('gCOG_sequences/SmallWeights/')
+raw.files <- list.files('SmallCOGS/')
 filenames <- paste0(weight.small$locus,".aligned.fasta")
 files.all <- na.omit(raw.files[match(filenames,raw.files)])
 file.list <- pneumo.seq.df.sm <- list()
 for (i in 1:length(files.all)) {
-  file <- paste0("gCOG_sequences/SmallWeights/",files.all[i])
+  file <- paste0("SmallCOGS/",files.all[i])
   file.list[[i]] <- seqinr::read.fasta(file,seqtype= "AA", as.string = T, forceDNAtolower = F)
   
   pneumo.seq.df.sm[[i]] <- data.frame(name=paste(getAnnot(file.list[[i]])), sequence=paste0(file.list[[i]]))
@@ -381,7 +385,7 @@ for (c in 1:221) {
   lg.mat[[c]] <- mat1
 }
 sm.mat <- list()
-for (c in 1:221) {
+for (c in 1:684) {
   mat1 <- matrix(NA, nrow=length(pneumo.seq.df.sm[[c]][["sequence"]]),ncol=str_length(pneumo.seq.df.sm[[c]][["sequence"]][1]))
   for (m in 1:length(pneumo.seq.df.sm[[c]][["sequence"]])) {
     mat1[m,] <- s2c(pneumo.seq.df.sm[[c]][["sequence"]][m])
@@ -389,29 +393,37 @@ for (c in 1:221) {
   sm.mat[[c]] <- mat1
 }
 
-td.lg = td.sm = rep(NA,length(pneumo.seq.df.lg))
-tp.lg = tp.sm = rep(NA,length(pneumo.seq.df.lg))
+tp.lg = rep(NA,length(pneumo.seq.df.lg))
+tp.sm = rep(NA,length(pneumo.seq.df.sm))
 for (l in 1:length(lg.mat)) {
   #convert character strings to binary DNA
   #returns indices of segregating sites -- i just want to know how many there are, so add em up
  # td.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$D
 #  td.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$D
   tp.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$Pval.normal
+ # tp.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$Pval.normal
+}
+
+for (l in 1:length(sm.mat)) {
+  #convert character strings to binary DNA
+ # td.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$D
   tp.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$Pval.normal
 }
 
 
-pdata <- data.frame(psmall=tp.sm, plarge=tp.lg)
-ggplot(melt(pdata), aes(x=value, y=variable, fill=variable)) +
+library(reshape2)
+ddata <- c(psmall=td.sm, plarge=td.lg)
+ddata <- data.frame(Weight=c(rep("Small",length(td.sm)),rep("Large",length(td.lg))),D=ddata)
+ggplot(ddata, aes(x=D, y=Weight, fill=Weight)) +
   geom_boxplot(alpha = 0.4) +
   #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
   # geom_density(alpha=0,aes(color=vax)) +
   scale_fill_manual(values=c(co[1],co[2]))+
   scale_color_manual(values=c(co[1],co[2]))+
-  labs(x="p-value", y = "Weight") +
+  labs(x="D value", y = "Weight") +
   theme_minimal() 
 
-ggplot(melt(pdata), aes(x=value, fill=variable)) +
+ggplot(pdata, aes(x=pval, fill=Weight)) +
   geom_histogram(alpha = 0.4, bins=200) +
   #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
   # geom_density(alpha=0,aes(color=vax)) +
@@ -420,8 +432,9 @@ ggplot(melt(pdata), aes(x=value, fill=variable)) +
   labs(x="p-value", y = "Count") +
   theme_minimal() 
 
-sigps <- melt(pdata) %>% group_by(variable) %>% count(sig=value<=0.05) %>% group_by(variable) 
-ggplot(filter(sigps, is.na(sig)==F), aes(x=n, y=sig, fill=variable)) +
+
+sigps <- pdata %>% group_by(Weight) %>% dplyr::count(sig=pval<=0.05) %>% group_by(Weight) 
+ggplot(filter(sigps, is.na(sig)==F), aes(x=n, y=sig, fill=Weight)) +
   geom_bar(stat="identity",position = position_dodge(),alpha = 0.4) +
   #geom_histogram(aes(y=..density..), alpha=0.4, position = "identity", binwidth = 0.1) +
   # geom_density(alpha=0,aes(color=vax)) +
@@ -430,6 +443,10 @@ ggplot(filter(sigps, is.na(sig)==F), aes(x=n, y=sig, fill=variable)) +
   labs(x="Number of p-values", y = " ", fill="Weight") +
   theme_minimal() +
   scale_y_discrete(labels=c("TRUE" = "p < 0.05", "FALSE" = "p > 0.05"))
+
+
+pdata <- c(psmall=tp.sm, plarge=tp.lg)
+pdata <- data.frame(Weight=c(rep("Small",length(td.sm)),rep("Large",length(td.lg))),pval=pdata)
 
 
 ## look at all the ones that were significant by tajima
