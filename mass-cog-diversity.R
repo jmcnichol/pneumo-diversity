@@ -72,7 +72,7 @@ for (c in 1:221) {
   lg.mat[[c]] <- mat1
 }
 sm.mat <- list()
-for (c in 1:221) {
+for (c in 1:684) {
   mat1 <- matrix(NA, nrow=length(pneumo.seq.df.sm[[c]][["sequence"]]),ncol=str_length(pneumo.seq.df.sm[[c]][["sequence"]][1]))
   for (m in 1:length(pneumo.seq.df.sm[[c]][["sequence"]])) {
     mat1[m,] <- s2c(pneumo.seq.df.sm[[c]][["sequence"]][m])
@@ -80,18 +80,27 @@ for (c in 1:221) {
   sm.mat[[c]] <- mat1
 }
 
-td.lg = td.sm = rep(NA,length(pneumo.seq.df.lg))
-tp.lg = tp.sm = rep(NA,length(pneumo.seq.df.lg))
+tp.lg = rep(NA,length(pneumo.seq.df.lg))
+tp.sm = rep(NA,length(pneumo.seq.df.sm))
 for (l in 1:length(lg.mat)) {
   #convert character strings to binary DNA
   #returns indices of segregating sites -- i just want to know how many there are, so add em up
- # td.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$D
-#  td.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$D
+  # td.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$D
+  #  td.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$D
   tp.lg[l] <- pegas::tajima.test(as.DNAbin(lg.mat[[l]]))$Pval.beta
+  # tp.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$Pval.normal
+}
+
+for (l in 1:length(sm.mat)) {
+  #convert character strings to binary DNA
+  # td.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$D
   tp.sm[l] <- pegas::tajima.test(as.DNAbin(sm.mat[[l]]))$Pval.beta
 }
 
 # look at pvalues
+pdata <- c(psmall=tp.sm, plarge=tp.lg)
+pdata <- data.frame(Weight=c(rep("Small",length(td.sm)),rep("Large",length(td.lg))),pval=pdata)
+
 pdata <- data.frame(psmall=tp.sm, plarge=tp.lg)
 sigps <- melt(pdata) %>% group_by(variable) %>% count(sig=value<=0.05) %>% group_by(variable) 
 ggplot(filter(sigps, is.na(sig)==F), aes(x=n, y=sig, fill=variable)) +
@@ -105,6 +114,10 @@ ggplot(filter(sigps, is.na(sig)==F), aes(x=n, y=sig, fill=variable)) +
   scale_y_discrete(labels=c("TRUE" = "p < 0.05", "FALSE" = "p > 0.05"))
 
 # D values 
+library(reshape2)
+ddata <- c(psmall=td.sm, plarge=td.lg)
+ddata <- data.frame(Weight=c(rep("Small",length(td.sm)),rep("Large",length(td.lg))),D=ddata)
+
 Ddata <- data.frame(Large=td.lg,Small=td.sm)
 ggplot(filter(melt(Ddata), is.na(value)==F), aes(x=value, fill=variable, color=variable)) +
  # geom_density(alpha = 0.2) +
@@ -193,13 +206,14 @@ sm.mean <- mean((td.sm),na.rm = T)
 
 sd((td.lg),na.rm = T)
 
-abs(lg.mean-sm.mean)/sqrt(2/221)
+abs(lg.mean-sm.mean)/sqrt(1/221+1/684)
+dnorm(abs(lg.mean-sm.mean)/sqrt(1/221+1/684))
 
 tp.lg.p <- p.adjust(tp.lg)
 tp.sm.p <- p.adjust(tp.sm)
 
-sum(tp.lg.p < 0.05, na.rm = T)/221
-sum(tp.sm.p < 0.05, na.rm = T)/221
+sum(tp.lg.p < 0.05, na.rm = T)/221*100
+sum(tp.sm.p < 0.05, na.rm = T)/684*100
 #use these ones and see if they do as well. they cant use all the weights. make model of NFDS using this approach. 
 
 
