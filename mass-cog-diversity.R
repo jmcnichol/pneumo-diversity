@@ -235,3 +235,38 @@ pd.cog.lg[62]
 
 sd(pd.cog.lg[-62])
 mean(pd.cog.lg[-62])
+
+
+#### Look at the COGs with significant pvalues ####
+hist(td.sm[which(tp.sm.p < 0.05)])
+hist(td.lg[which(tp.lg.p < 0.05)])
+hist(tp.sm)
+
+#### look at the cogs with significatn D only #####
+seq.lg.D <- pneumo.seq.df.lg[which(tp.lg.p < 0.05)]
+seq.sm.D <- pneumo.seq.df.sm[which(tp.sm.p < 0.05)]
+
+####### get info about the ones that have sig D ####
+lg.info.digD <- cbind(mass.info,massdata[,which(colnames(massdata) %in% names(seq.lg.D)==T)])
+sm.info.digD <- cbind(mass.info,massdata[,which(colnames(massdata) %in% names(seq.sm.D)==T)])
+
+
+dim(lg.info.digD) #99
+dim(sm.info.digD) #280
+
+sum(lg.info.digD$VT == "VT") 
+sum(sm.info.digD$VT == "VT") 
+
+
+##### write the fasta files that are sig D
+write.table(paste0(c(names(seq.lg.D),names(seq.sm.D)),".aligned.fasta"), "sigD-COGs.txt", sep="\t", col.names = F, row.names = F,quote=F)
+
+## write the weights for the sig ones 
+weight.lg.D <- weight.large[which(tp.lg.p < 0.05),2]
+weight.sm.D <- weight.small[which(tp.sm.p < 0.05),2]
+
+write.table(paste0(c((weight.lg.D),(weight.sm.D))), "sigD-weights.txt", sep="\t", col.names = F, row.names = F,quote=F)
+
+
+
+
